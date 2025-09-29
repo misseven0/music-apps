@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>单页复合节拍器</title>
+        <style>
+            :root {
+                --bg: #161f2c;
+                /* --bg: #0f1724; */
+                --card: #0b1220;
+                --accent: #06b6d4;
+                --muted: #94a3b8;
+            }
+
+            html,
+            body {
+                height: 92%;
+                margin: 30px;
+                font-family: Inter, Segoe UI, Roboto, "Helvetica Neue", Arial;
+                /* background: linear-gradient(180deg, var(--bg), #071021); */
+                background: linear-gradient(180deg, var(--bg), #0a152b);
+                color: #e6eef6;
+            }
+
+            .app {
+                max-width: 100%;
+                margin: 20px auto;
+                padding: 20px;
+                background: rgba(255, 255, 255, 0.02);
+                border-radius: 12px;
+                box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6);
+            }
+
+            header {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            h1 {
+                font-size: 18px;
+                margin: 0;
+            }
+
+            .controls {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+            }
+
+            .controls input[type="range"] {
+                width: 140px;
+            }
+
+            .btn {
+                background: var(--accent);
+                border: none;
+                padding: 8px 12px;
+                border-radius: 2px;
+                color: black;
+                font-weight: 600;
+                cursor: pointer;
+            }
+
+            .btn:active {
+                transform: translateY(1px);
+            }
+
+            .small {
+                padding: 6px 8px;
+                font-size: 13px;
+            }
+
+            .removeTrack {
+                width: 30px;
+            }
+
+            .addTrack {
+                width: 30px;
+            }
+
+            .toolbar {
+                display: flex;
+                gap: 8px;
+                margin-top: 12px;
+                align-items: center;
+            }
+
+            .grid-wrap {
+                overflow: auto;
+                margin-top: 12px;
+                border-radius: 8px;
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.01);
+            }
+
+            .grid {
+                display: grid;
+                gap: 6px;
+            }
+
+            .track-row {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+
+            .track-label {
+                width: 80px;
+                flex-shrink: 0;
+                text-align: right;
+            }
+
+            .cells {
+                display: flex;
+                gap: 4px;
+                align-items: center;
+            }
+
+            .cell {
+                width: 28px;
+                height: 28px;
+                border-radius: 2px;
+                background: rgba(255, 255, 255, 0.02);
+                display: grid;
+                place-items: center;
+                font-size: 12px;
+                cursor: pointer;
+                border: 1px solid rgba(237, 175, 5, 0.5);
+            }
+
+            .cell.state-0 {
+                /*  background: transparent; */
+                color: var(--muted);
+                color: white;
+            }
+            .state-first {
+                background-color: #009688;
+                font-weight: bolder;
+            }
+
+            .cell.state-1 {
+                background: #0ea5a4;
+                color: black;
+                font-weight: 700;
+            }
+
+            /* Accent */
+            .cell.state-2 {
+                background: #f59e0b;
+                color: black;
+                font-weight: 700;
+            }
+
+            /* Secondary accent */
+            .cell.state-3 {
+                background: #94a3b8;
+                color: black;
+            }
+
+            /* muted hit */
+            .cell.playing {
+                outline: 3px solid rgba(6, 182, 212, 0.6);
+            }
+
+            .palette {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+            }
+
+            .palette .p {
+                width: 28px;
+                height: 28px;
+                border-radius: 6px;
+                display: grid;
+                place-items: center;
+                cursor: pointer;
+            }
+
+            .info {
+                color: var(--muted);
+                font-size: 13px;
+            }
+
+            .footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 12px;
+                color: var(--muted);
+            }
+
+            input[type="number"] {
+                width: 70px;
+                padding: 6px;
+                border-radius: 6px;
+                border: 1px solid rgba(255, 255, 255, 0.04);
+                background: transparent;
+                color: inherit;
+            }
+
+            .preset-actions {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="app">
+            <header>
+                <h1>单页复合节拍器</h1>
+                <div class="controls">
+                    <button id="play" class="btn">PLAY</button>
+                    <!-- <button id="stop" class="btn small">Stop</button> -->
+                    <div style="display: flex; flex-direction: column; align-items: flex-start">
+                        <label class="info">BPM <span id="bpmLabel">120</span></label>
+                        <input id="bpm" type="range" min="40" max="300" value="120" />
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-start">
+                        <label class="info">Swing % <span id="swingLabel">0</span></label>
+                        <input id="swing" type="range" min="0" max="70" value="0" />
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-start">
+                        <label class="info">音量 <span id="volumeLabel">80</span></label>
+                        <input id="volume" type="range" min="0" max="300" value="80" />
+                    </div>
+                </div>
+            </header>
+
+            <div class="toolbar">
+                <label class="info">Bars: <input id="bars" type="number" min="1" value="4" /></label>
+                <label class="info">Beats/Bar (default): <input id="beatsPerBarDefault" type="number" min="1" value="4" /></label>
+                <button id="applyBars" class="btn small">应用</button>
+                <button id="addTrack" class="btn small addTrack">+</button>
+                <button id="removeTrack" class="btn small removeTrack">-</button>
+
+                <div style="margin-left: 10px" class="palette">
+                    <div class="info">State palette:</div>
+                    <div class="p" data-state="1" title="Accent" style="background: #0ea5a4"></div>
+                    <div class="p" data-state="2" title="Secondary" style="background: #f59e0b"></div>
+                    <div class="p" data-state="3" title="Soft hit" style="background: #94a3b8"></div>
+                    <div class="p" data-state="0" title="Off" style="background: transparent; border: 1px solid rgba(255, 255, 255, 0.04)">
+                        X
+                    </div>
+                </div>
+
+                <div style="margin-left: auto" class="preset-actions">
+                    <input id="presetName" placeholder="preset name" />
+                    <button id="savePreset" class="btn small">保存</button>
+                    <select id="presetList"></select>
+                    <button id="loadPreset" class="btn small">载入</button>
+                    <button id="deletePreset" class="btn small">删除预设</button>
+                </div>
+            </div>
+
+            <div class="grid-wrap">
+                <div id="grid" class="grid"></div>
+            </div>
+
+            <div class="footer">
+                <div class="info">Click each cell to cycle state (Off → Accent → Secondary → Soft)</div>
+                <div class="info">Swing delays every other beat pair. Presets saved to browser localStorage.</div>
+            </div>
+        </div>
+
+        <script>
+            // =====================================================
+            // Composite single-page metronome / sequencer
+            // - Multiple tracks (rows)
+            // - N bars, per-bar beats customizable (uses default beats per bar, but can be adjusted later)
+            // - Horizontal timeline = time axis; click cells to set states
+            // - BPM, swing %, save/load presets to localStorage
+            // =====================================================
+
+            // --------------------- State -------------------------
+            const state = {
+                bpm: 120,
+                swing: 0, // percent 0-70
+                bars: 4,
+                beatsPerBarDefault: 4,
+                tracks: [], // each track: {name, steps: [stateNumbers], perBarBeats: [nums]}
+                paletteStates: [0, 1, 2, 3],
+                selectedPalette: 1,
+                isPlaying: false,
+                audioCtx: null,
+                lookahead: 0.1, // schedule ahead seconds
+                scheduleInterval: 25, // ms
+                nextNoteTime: 0,
+                currentStepIdx: 0,
+                volume: 0.8,
+            };
+
+            // Helper to compute total steps (sum of beats per bar) - here we use uniform per-bar default for simplicity
+            function totalSteps() {
+                let sum = 0;
+                for (let i = 0; i < state.bars; i++) sum += state.beatsPerBarDefault;
+                return sum;
+            }
+
+            // --------------------- Audio setup --------------------
+            function ensureAudio() {
+                if (!state.audioCtx) {
+                    state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            function playClickAt(time, trackIndex, stepState) {
+                // Use short oscillator for click; volume depends on state
+                ensureAudio();
+                const ctx = state.audioCtx;
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                // different pitch per track to help differentiate
+                const baseFreq = 1000 + trackIndex * 80;
+                o.frequency.value = baseFreq * (stepState === 1 ? 1.0 : stepState === 2 ? 0.8 : 0.6);
+                // g.gain.value = (stepState === 1 ? 0.7 : stepState === 2 ? 0.55 : 0.35);
+                g.gain.value = state.volume * (stepState === 1 ? 0.7 : stepState === 2 ? 0.55 : 0.35);
+                g.gain.setValueAtTime(g.gain.value, time);
+                g.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+                o.connect(g);
+                g.connect(ctx.destination);
+                o.start(time);
+                o.stop(time + 0.05);
+            }
+
+            // -------------------- Sequencer logic -----------------
+            function ensureTrackLen(track) {
+                const len = totalSteps();
+                if (!track.steps || track.steps.length !== len) {
+                    track.steps = new Array(len).fill(0);
+                }
+            }
+
+            function rebuildTracks() {
+                const len = totalSteps();
+                state.tracks.forEach((t) => {
+                    if (!t.name) t.name = "Track";
+                    ensureTrackLen(t);
+                });
+                renderGrid();
+            }
+
+            function addTrack(name) {
+                const t = { name: name || "Track " + (state.tracks.length + 1), steps: [] };
+                state.tracks.push(t);
+                ensureTrackLen(t);
+                renderGrid();
+            }
+
+            function removeTrack() {
+                if (state.tracks.length > 0) state.tracks.pop();
+                renderGrid();
+            }
+
+            // -------------------- UI Rendering -------------------
+            const gridEl = document.getElementById("grid");
+            function renderGrid() {
+                gridEl.innerHTML = "";
+                const header = document.createElement("div");
+                header.style.display = "flex";
+                header.style.alignItems = "center";
+                header.style.gap = "8px";
+                // top-left spacer
+                const spacer = document.createElement("div");
+                spacer.style.width = "80px";
+                header.appendChild(spacer);
+
+                // create labels for steps
+                const stepCount = totalSteps();
+                const stepRow = document.createElement("div");
+                stepRow.style.display = "flex";
+                stepRow.style.gap = "4px";
+                for (let i = 0; i < stepCount; i++) {
+                    const lbl = document.createElement("div");
+                    lbl.className = "cell state-0";
+                    if (i % state.beatsPerBarDefault == 0) {
+                        lbl.className = lbl.className + " state-first";
+                    }
+                    // lbl.style.opacity = '0.8';
+                    lbl.textContent = i + 1;
+                    stepRow.appendChild(lbl);
+                }
+                header.appendChild(stepRow);
+                gridEl.appendChild(header);
+
+                state.tracks.forEach((tidx, idx) => {});
+
+                state.tracks.forEach((t, ti) => {
+                    const row = document.createElement("div");
+                    row.className = "track-row";
+                    const label = document.createElement("div");
+                    label.className = "track-label";
+                    label.textContent = t.name;
+                    // allow rename on double click
+                    label.ondblclick = () => {
+                        const n = prompt("Rename track", t.name);
+                        if (n) {
+                            t.name = n;
+                            renderGrid();
+                        }
+                    };
+                    row.appendChild(label);
+                    const cells = document.createElement("div");
+                    cells.className = "cells";
+                    ensureTrackLen(t);
+                    t.steps.forEach((s, si) => {
+                        const c = document.createElement("div");
+                        c.className = "cell state-" + s;
+                        c.dataset.step = si;
+                        c.dataset.track = ti;
+                        c.title = `Step ${si + 1}`;
+                        c.addEventListener("click", (ev) => {
+                            // cycle through palette states on click
+                            const trackIdx = Number(c.dataset.track);
+                            const stepIdx = Number(c.dataset.step);
+                            const cur = state.tracks[trackIdx].steps[stepIdx] || 0;
+                            const next = (cur + 1) % state.paletteStates.length;
+                            state.tracks[trackIdx].steps[stepIdx] = next;
+                            c.className = "cell state-" + next;
+                        });
+                        cells.appendChild(c);
+                    });
+                    row.appendChild(cells);
+                    gridEl.appendChild(row);
+                });
+            }
+
+            // -------------------- Playback scheduler --------------
+            let schedulerTimer = null;
+
+            function start() {
+                if (state.isPlaying) return;
+                ensureAudio();
+                // initialize timing
+                state.isPlaying = true;
+                state.nextNoteTime = state.audioCtx.currentTime + 0.05;
+                state.currentStepIdx = 0;
+                schedulerTimer = setInterval(scheduler, state.scheduleInterval);
+                document.getElementById("play").textContent = "STOP";
+            }
+
+            function stop() {
+                if (!state.isPlaying) return;
+                state.isPlaying = false;
+                if (schedulerTimer) {
+                    clearInterval(schedulerTimer);
+                    schedulerTimer = null;
+                }
+                document.getElementById("play").textContent = "PLAY";
+                // clear playing CSS
+                document.querySelectorAll(".cell.playing").forEach((e) => e.classList.remove("playing"));
+            }
+
+            function scheduler() {
+                const ctx = state.audioCtx;
+                const lookahead = state.lookahead;
+                while (state.nextNoteTime < ctx.currentTime + lookahead) {
+                    scheduleStep(state.currentStepIdx, state.nextNoteTime);
+                    // compute next step time
+                    const beatInterval = 60.0 / state.bpm / state.beatsPerBarDefault; // one beat interval
+                    // swing: we delay every other step by swingPercent * (beatInterval/2)
+                    let swingDelay = 0;
+                    if (state.swing > 0 && state.currentStepIdx % 2 === 1) {
+                        swingDelay = (state.swing / 100) * (beatInterval / 2);
+                    }
+                    state.nextNoteTime += beatInterval + swingDelay;
+                    state.currentStepIdx = (state.currentStepIdx + 1) % totalSteps();
+                }
+            }
+
+            function scheduleStep(stepIdx, time) {
+                // for each track, if state>0, play sound
+                state.tracks.forEach((t, ti) => {
+                    const st = t.steps[stepIdx] || 0;
+                    if (st > 0) {
+                        playClickAt(time, ti, st);
+                    }
+                });
+                // UI highlight
+                requestAnimationFrame(() => {
+                    // remove old playing marks
+                    document.querySelectorAll(".cell.playing").forEach((e) => e.classList.remove("playing"));
+                    const nodes = document.querySelectorAll(`.cell[data-step='${stepIdx}']`);
+                    nodes.forEach((n) => n.classList.add("playing"));
+                });
+            }
+
+            // -------------------- Presets (localStorage) -----------
+            function savePreset(name) {
+                if (!name) return alert("Please enter preset name");
+                const data = {
+                    bpm: state.bpm,
+                    swing: state.swing,
+                    bars: state.bars,
+                    beatsPerBarDefault: state.beatsPerBarDefault,
+                    tracks: state.tracks,
+                };
+                const raw = JSON.stringify(data);
+                localStorage.setItem("metronome_preset_" + name, raw);
+                refreshPresetList();
+            }
+
+            function loadPreset(name) {
+                const raw = localStorage.getItem("metronome_preset_" + name);
+                if (!raw) return alert("Preset not found");
+                const data = JSON.parse(raw);
+                state.bpm = data.bpm || state.bpm;
+                state.swing = data.swing || state.swing;
+                state.bars = data.bars || state.bars;
+                state.beatsPerBarDefault = data.beatsPerBarDefault || state.beatsPerBarDefault;
+                state.tracks = data.tracks || state.tracks;
+                // update UI controls
+                document.getElementById("bpm").value = state.bpm;
+                document.getElementById("bpmLabel").textContent = state.bpm;
+                document.getElementById("swing").value = state.swing;
+                document.getElementById("swingLabel").textContent = state.swing;
+                document.getElementById("bars").value = state.bars;
+                document.getElementById("beatsPerBarDefault").value = state.beatsPerBarDefault;
+                rebuildTracks();
+            }
+
+            function deletePreset(name) {
+                if (!name) return;
+                localStorage.removeItem("metronome_preset_" + name);
+                refreshPresetList();
+            }
+
+            function refreshPresetList() {
+                const sel = document.getElementById("presetList");
+                sel.innerHTML = "";
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith("metronome_preset_")) {
+                        const name = key.replace("metronome_preset_", "");
+                        const opt = document.createElement("option");
+                        opt.value = name;
+                        opt.textContent = name;
+                        sel.appendChild(opt);
+                    }
+                }
+            }
+
+            // -------------------- Wire up controls -----------------
+            document.getElementById("bpm").addEventListener("input", (e) => {
+                state.bpm = Number(e.target.value);
+                document.getElementById("bpmLabel").textContent = state.bpm;
+            });
+            document.getElementById("swing").addEventListener("input", (e) => {
+                state.swing = Number(e.target.value);
+                document.getElementById("swingLabel").textContent = state.swing;
+            });
+
+            document.getElementById("bars").addEventListener("change", (e) => {
+                state.bars = Math.max(1, Number(e.target.value));
+                rebuildTracks();
+            });
+            document.getElementById("beatsPerBarDefault").addEventListener("change", (e) => {
+                state.beatsPerBarDefault = Math.max(1, Number(e.target.value));
+                rebuildTracks();
+            });
+
+            document.getElementById("applyBars").addEventListener("click", () => {
+                rebuildTracks();
+            });
+            document.getElementById("addTrack").addEventListener("click", () => {
+                addTrack();
+            });
+            document.getElementById("removeTrack").addEventListener("click", () => {
+                removeTrack();
+            });
+
+            var playing = false;
+            document.getElementById("play").addEventListener("click", () => {
+                if (!playing) {
+                    start();
+                } else {
+                    stop();
+                }
+                playing = !playing;
+            });
+
+            document.getElementById("volume").addEventListener("input", (e) => {
+                state.volume = Number(e.target.value) / 100;
+                document.getElementById("volumeLabel").textContent = e.target.value;
+            });
+
+            //document.getElementById('stop').addEventListener('click', ()=>{ stop(); });
+
+            document.querySelectorAll(".palette .p").forEach((p) => {
+                p.addEventListener("click", () => {
+                    document.querySelectorAll(".palette .p").forEach((x) => (x.style.outline = ""));
+                    p.style.outline = "3px solid rgba(255,255,255,0.08)";
+                    state.selectedPalette = Number(p.dataset.state || 1);
+                });
+            });
+
+            document.getElementById("savePreset").addEventListener("click", () => {
+                const n = document.getElementById("presetName").value.trim();
+                savePreset(n);
+            });
+            document.getElementById("loadPreset").addEventListener("click", () => {
+                const sel = document.getElementById("presetList");
+                if (sel.value) loadPreset(sel.value);
+            });
+            document.getElementById("deletePreset").addEventListener("click", () => {
+                const sel = document.getElementById("presetList");
+                if (sel.value) {
+                    if (confirm("Delete preset " + sel.value + "?")) deletePreset(sel.value);
+                }
+            });
+
+            // initialize a couple tracks
+            addTrack("轨道1");
+            addTrack("轨道2");
+            // fill some demo hits
+            state.tracks[0].steps[0] = 1;
+            state.tracks[0].steps[2] = 2;
+            state.tracks[1].steps[1] = 3;
+
+            renderGrid();
+            refreshPresetList();
+
+            // stop audio when page hidden to save CPU
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) stop();
+            });
+
+            // ensure audio context resumes on user gesture
+            window.addEventListener(
+                "click",
+                () => {
+                    try {
+                        if (state.audioCtx && state.audioCtx.state === "suspended") state.audioCtx.resume();
+                    } catch (e) {}
+                },
+                { once: false }
+            );
+        </script>
+    </body>
+</html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>单页复合节拍器</title>
+        <style>
+            /* 样式与配色方案 */
+            :root {
+                --bg: #0f1724;
+                --card: #0b1220;
+                --accent: #06b6d4;
+                --muted: #94a3b8;
+            }
+            [data-theme="light"] {
+                --bg: #f4f4f4;
+                --card: #ffffff;
+                --accent: #2563eb;
+                --muted: #555;
+            }
+            [data-theme="warm"] {
+                --bg: #3b2f2f;
+                --card: #4b3832;
+                --accent: #e07a5f;
+                --muted: #c9ada7;
+            }
+            html,
+            body {
+                height: 100%;
+                margin: 0;
+                font-family: Inter, Segoe UI, Roboto, "Helvetica Neue", Arial;
+                background: linear-gradient(180deg, var(--bg), #071021);
+                color: #e6eef6;
+                transition: all 0.3s;
+            }
+            .app {
+                width: 95%;
+                max-width: 1100px;
+                margin: 20px auto;
+                padding: 20px;
+                background: var(--card);
+                border-radius: 12px;
+                box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6);
+            }
+            header {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+            }
+            h1 {
+                font-size: 18px;
+                margin: 0;
+            }
+            .controls {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            .controls input[type="range"] {
+                width: 140px;
+            }
+            .btn {
+                background: var(--accent);
+                border: none;
+                padding: 8px 12px;
+                border-radius: 8px;
+                color: black;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .btn:active {
+                transform: translateY(1px);
+            }
+            .small {
+                padding: 6px 8px;
+                font-size: 13px;
+            }
+            .toolbar {
+                display: flex;
+                gap: 8px;
+                margin-top: 12px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            .grid-wrap {
+                overflow: auto;
+                margin-top: 12px;
+                border-radius: 8px;
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.01);
+            }
+            .grid {
+                display: grid;
+                gap: 6px;
+            }
+            .track-row {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+            .track-label {
+                width: 120px;
+                flex-shrink: 0;
+            }
+            .cells {
+                display: flex;
+                gap: 4px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            .cell {
+                width: 28px;
+                height: 28px;
+                border-radius: 6px;
+                background: rgba(255, 255, 255, 0.02);
+                display: grid;
+                place-items: center;
+                font-size: 12px;
+                cursor: pointer;
+                border: 1px solid rgba(255, 255, 255, 0.03);
+            }
+            .cell.state-0 {
+                background: transparent;
+                color: var(--muted);
+            }
+            .cell.state-1 {
+                background: #0ea5a4;
+                color: black;
+                font-weight: 700;
+            }
+            .cell.state-2 {
+                background: #f59e0b;
+                color: black;
+                font-weight: 700;
+            }
+            .cell.state-3 {
+                background: #94a3b8;
+                color: black;
+            }
+            .cell.playing {
+                outline: 3px solid rgba(6, 182, 212, 0.18);
+            }
+            .palette {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+            }
+            .palette .p {
+                width: 28px;
+                height: 28px;
+                border-radius: 6px;
+                display: grid;
+                place-items: center;
+                cursor: pointer;
+            }
+            .info {
+                color: var(--muted);
+                font-size: 13px;
+            }
+            .footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 12px;
+                color: var(--muted);
+                flex-wrap: wrap;
+            }
+            input[type="number"],
+            input[type="text"] {
+                width: 70px;
+                padding: 6px;
+                border-radius: 6px;
+                border: 1px solid rgba(255, 255, 255, 0.04);
+                background: transparent;
+                color: inherit;
+            }
+            #presetName {
+                width: 120px;
+            }
+            .preset-actions {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="app">
+            <header>
+                <h1>单页复合节拍器</h1>
+                <div class="controls">
+                    <button id="togglePlay" class="btn">Play</button>
+                    <div style="display: flex; flex-direction: column; align-items: flex-start">
+                        <label class="info">BPM <span id="bpmLabel">120</span></label>
+                        <input id="bpm" type="range" min="40" max="300" value="120" />
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-start">
+                        <label class="info">Swing % <span id="swingLabel">0</span></label>
+                        <input id="swing" type="range" min="0" max="70" value="0" />
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-start">
+                        <label class="info">音量 <span id="volumeLabel">80</span></label>
+                        <input id="volume" type="range" min="0" max="100" value="80" />
+                    </div>
+                    <select id="themeSelect">
+                        <option value="default">深色</option>
+                        <option value="light">浅色</option>
+                        <option value="warm">暖色</option>
+                    </select>
+                </div>
+            </header>
+
+            <div class="toolbar">
+                <label class="info">小节数 <input id="bars" type="number" min="1" value="4" /></label>
+                <label class="info">每小节拍数 <input id="beatsPerBar" type="number" min="1" value="4" /></label>
+                <button id="addTrack" class="btn small">添加轨道</button>
+                <div class="palette" id="palette"></div>
+            </div>
+
+            <div class="grid-wrap">
+                <div id="grid"></div>
+            </div>
+
+            <div class="preset-actions">
+                <input id="presetName" type="text" placeholder="预设名称" />
+                <button id="savePreset" class="btn small">保存预设</button>
+                <select id="presetList"></select>
+                <button id="loadPreset" class="btn small">加载预设</button>
+            </div>
+        </div>
+
+        <script>
+            const state = {
+                bpm: 120,
+                swing: 0,
+                bars: 4,
+                beatsPerBarDefault: 4,
+                tracks: [],
+                paletteStates: [0, 1, 2, 3],
+                selectedPalette: 1,
+                isPlaying: false,
+                audioCtx: null,
+                lookahead: 0.1,
+                scheduleInterval: 25,
+                nextNoteTime: 0,
+                currentStepIdx: 0,
+                volume: 0.8,
+            };
+
+            function ensureAudio() {
+                if (!state.audioCtx) {
+                    state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            function playClickAt(time, trackIndex, stepState) {
+                //
+                ensureAudio();
+                const ctx = state.audioCtx;
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                //
+                const baseFreq = 1000 + trackIndex * 80;
+                o.frequency.value = baseFreq * (stepState === 1 ? 1.0 : stepState === 2 ? 0.8 : 0.6);
+                //
+                g.gain.value = state.volume * (stepState === 1 ? 0.7 : stepState === 2 ? 0.55 : 0.35);
+                g.gain.setValueAtTime(g.gain.value, time);
+                g.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+                o.connect(g);
+                g.connect(ctx.destination);
+                o.start(time);
+                o.stop(time + 0.05);
+            }
+
+            document.getElementById("togglePlay").addEventListener("click", () => {
+                state.isPlaying ? stop() : start();
+            });
+            document.getElementById("volume").addEventListener("input", (e) => {
+                state.volume = Number(e.target.value) / 100;
+                document.getElementById("volumeLabel").textContent = e.target.value;
+            });
+            document.getElementById("themeSelect").addEventListener("change", (e) => {
+                const val = e.target.value;
+                if (val === "default") {
+                    document.documentElement.removeAttribute("data-theme");
+                } else {
+                    document.documentElement.setAttribute("data-theme", val);
+                }
+            });
+
+            // 初始化调色板
+            const paletteEl = document.getElementById("palette");
+            state.paletteStates.forEach((st) => {
+                const d = document.createElement("div");
+                d.className = "p cell state-" + st;
+                d.textContent = st;
+                d.addEventListener("click", () => {
+                    state.selectedPalette = st;
+                });
+                paletteEl.appendChild(d);
+            });
+
+            function renderGrid() {
+                const gridEl = document.getElementById("grid");
+                gridEl.innerHTML = "";
+                state.tracks.forEach((track, ti) => {
+                    const row = document.createElement("div");
+                    row.className = "track-row";
+                    const label = document.createElement("input");
+                    label.type = "text";
+                    label.value = track.name;
+                    label.addEventListener("input", (e) => (track.name = e.target.value));
+                    label.className = "track-label";
+                    row.appendChild(label);
+                    const cells = document.createElement("div");
+                    cells.className = "cells";
+                    for (let i = 0; i < state.bars * state.beatsPerBarDefault; i++) {
+                        const c = document.createElement("div");
+                        c.className = "cell state-" + track.steps[i];
+                        c.textContent = track.steps[i];
+                        c.addEventListener("click", () => {
+                            track.steps[i] = state.selectedPalette;
+                            c.className = "cell state-" + track.steps[i];
+                            c.textContent = track.steps[i];
+                        });
+                        cells.appendChild(c);
+                    }
+                    row.appendChild(cells);
+                    gridEl.appendChild(row);
+                });
+            }
+
+            document.getElementById("bars").addEventListener("input", (e) => {
+                state.bars = Number(e.target.value);
+                state.tracks.forEach((t) => {
+                    t.steps.length = state.bars * state.beatsPerBarDefault;
+                    t.steps.fill(0);
+                });
+                renderGrid();
+            });
+            document.getElementById("beatsPerBar").addEventListener("input", (e) => {
+                state.beatsPerBarDefault = Number(e.target.value);
+                state.tracks.forEach((t) => {
+                    t.steps.length = state.bars * state.beatsPerBarDefault;
+                    t.steps.fill(0);
+                });
+                renderGrid();
+            });
+            document.getElementById("addTrack").addEventListener("click", () => {
+                state.tracks.push({
+                    name: "轨道" + (state.tracks.length + 1),
+                    steps: Array(state.bars * state.beatsPerBarDefault).fill(0),
+                });
+                renderGrid();
+            });
+
+            // 预设保存加载
+            document.getElementById("savePreset").addEventListener("click", () => {
+                const name = document.getElementById("presetName").value;
+                if (!name) return;
+                localStorage.setItem("preset-" + name, JSON.stringify(state));
+                updatePresetList();
+            });
+            function updatePresetList() {
+                const list = document.getElementById("presetList");
+                list.innerHTML = "";
+                Object.keys(localStorage)
+                    .filter((k) => k.startsWith("preset-"))
+                    .forEach((k) => {
+                        const opt = document.createElement("option");
+                        opt.value = k;
+                        opt.textContent = k.replace("preset-", "");
+                        list.appendChild(opt);
+                    });
+            }
+            document.getElementById("loadPreset").addEventListener("click", () => {
+                const key = "preset-" + document.getElementById("presetList").value;
+                const data = localStorage.getItem(key);
+                if (data) {
+                    Object.assign(state, JSON.parse(data));
+                    renderGrid();
+                }
+            });
+            updatePresetList();
+
+            // 播放逻辑
+            function nextNote() {
+                const secondsPerBeat = 60.0 / state.bpm;
+                state.nextNoteTime += secondsPerBeat * (1.0 + (state.swing / 100) * (state.currentStepIdx % 2 ? 1 : -1));
+                state.currentStepIdx++;
+                if (state.currentStepIdx >= state.bars * state.beatsPerBarDefault) {
+                    state.currentStepIdx = 0;
+                }
+            }
+            function scheduleNote() {
+                state.tracks.forEach((track, ti) => {
+                    const stepState = track.steps[state.currentStepIdx];
+                    if (stepState > 0) {
+                        playClickAt(state.nextNoteTime, ti, stepState);
+                    }
+                });
+            }
+            function scheduler() {
+                while (state.nextNoteTime < state.audioCtx.currentTime + state.lookahead) {
+                    scheduleNote();
+                    nextNote();
+                }
+                state.timerID = setTimeout(scheduler, state.scheduleInterval);
+            }
+            function start() {
+                ensureAudio();
+                state.isPlaying = true;
+                state.currentStepIdx = 0;
+                state.nextNoteTime = state.audioCtx.currentTime + 0.05;
+                scheduler();
+            }
+            function stop() {
+                clearTimeout(state.timerID);
+                state.isPlaying = false;
+            }
+
+            document.getElementById("bpm").addEventListener("input", (e) => {
+                state.bpm = Number(e.target.value);
+                document.getElementById("bpmLabel").textContent = state.bpm;
+            });
+            document.getElementById("swing").addEventListener("input", (e) => {
+                state.swing = Number(e.target.value);
+                document.getElementById("swingLabel").textContent = state.swing;
+            });
+
+            // 初始化一个轨道
+            state.tracks.push({ name: "轨道1", steps: Array(state.bars * state.beatsPerBarDefault).fill(0) });
+            renderGrid();
+        </script>
+    </body>
+</html>
