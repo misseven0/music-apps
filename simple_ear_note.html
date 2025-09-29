@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>练耳程序</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                text-align: center;
+                padding: 50px;
+            }
+            button {
+                margin: 10px;
+                padding: 10px 20px;
+                font-size: 18px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>🎵练耳小游戏</h1>
+        <p>点击“播放音符”，然后猜猜听到的是哪个音。</p>
+        <button onclick="playNote()">播放音符</button>
+        <div id="buttons"></div>
+        <p id="result"></p>
+
+        <script>
+            const notes = [
+                { name: "C", freq: 261.63 },
+                { name: "D", freq: 293.66 },
+                { name: "E", freq: 329.63 },
+                { name: "F", freq: 349.23 },
+                { name: "G", freq: 392.0 },
+                { name: "A", freq: 440.0 },
+                { name: "B", freq: 493.88 },
+            ];
+
+            let currentNote = null;
+
+            // 创建按钮
+            const buttonsDiv = document.getElementById("buttons");
+            notes.forEach((note) => {
+                const btn = document.createElement("button");
+                btn.innerText = note.name;
+                btn.onclick = () => checkAnswer(note.name);
+                buttonsDiv.appendChild(btn);
+            });
+
+            function playNote() {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                // 选一个随机音符
+                currentNote = notes[Math.floor(Math.random() * notes.length)];
+
+                oscillator.frequency.setValueAtTime(currentNote.freq, audioCtx.currentTime);
+                oscillator.type = "sine";
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                // 设置音量和时长
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 1);
+            }
+
+            function checkAnswer(name) {
+                const result = document.getElementById("result");
+                if (!currentNote) {
+                    result.textContent = "请先播放音符再猜哦～";
+                    return;
+                }
+
+                if (name === currentNote.name) {
+                    result.textContent = `✅正确！这是 ${currentNote.name}`;
+                } else {
+                    result.textContent = `❌ 错了，这是 ${currentNote.name}`;
+                }
+            }
+        </script>
+    </body>
+</html>
